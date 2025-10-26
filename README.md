@@ -6,10 +6,11 @@ https://github.com/Steven-N-Hart/dicom_wsi
 
 Usage: 
 
-```python -m dicom_wsi.cli \     
-  -w pathway_to_your.tiffile.tif \
-  -o output_directory \
-  -p name_of_your_output \
+```bash
+python -m dicom_wsi.cli   
+  -w pathway_to_your.tiffile.tif 
+  -o output_directory 
+  -p name_of_your_output 
   -y base.yaml
 
 ```
