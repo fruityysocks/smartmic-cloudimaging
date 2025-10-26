@@ -16,6 +16,7 @@ Usage:
 
 You will have to change the first line in your yaml file according to which TIF file you are using.
 
+```
 WSIFile: 'pathway_to_your.tiffile.tif'
 
 ```
