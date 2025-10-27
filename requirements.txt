@@ -1,0 +1,14 @@
+pyvips
+pydicom
+PyYAML
+numpy
+Pillow
+tifffile
+tiffile
+datetime
+openslide-python
+cython
+pylibjpeg
+pylibjpeg-libjpeg
+pylibjpeg-openjpeg
+pytest
