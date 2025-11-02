@@ -278,3 +278,18 @@ class AWSHealthImaging:
             print(f"Error deleting datastore: {e}")
             print("Note: Datastore must be empty before deletion")
             return False
+
+    def search_image_sets(self, max_results=50):
+        """
+        Search for image sets in the datastore.
+        Returns list of image set summaries.
+        """
+        try:
+            response = self.client.search_image_sets(
+                datastoreId=self.datastore_id,
+                searchCriteria={}
+            )
+            return response.get('imageSetsMetadataSummaries', [])
+        except Exception as e:
+            print(f"Error searching image sets: {e}")
+            return []

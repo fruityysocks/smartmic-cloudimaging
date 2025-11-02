@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DICOM WSI Viewer</title>
+    <meta charset="utf-8">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background: #222;
+            color: #fff;
+        }
+        #viewer {
+            width: 100vw;
+            height: 100vh;
+            background: #000;
+        }
+        #controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 5px;
+            z-index: 1000;
+            max-width: 300px;
+        }
+        #info {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            z-index: 1000;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            margin: 5px 0;
+            cursor: pointer;
+            border-radius: 3px;
+            width: 100%;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .info-row {
+            margin: 5px 0;
+        }
+        #status {
+            color: #4CAF50;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/openseadragon@4.1/build/openseadragon/openseadragon.min.js"></script>
+</head>
+<body>
+    <div id="viewer"></div>
+    
+    <div id="controls">
+        <h3 style="margin-top: 0;">WSI Controls</h3>
+        <div id="status">Initializing...</div>
+        <button onclick="resetView()">Reset View</button>
+        <button onclick="zoomIn()">Zoom In</button>
+        <button onclick="zoomOut()">Zoom Out</button>
+    </div>
+    
+    <div id="info">
+        <div class="info-row"><strong>Image:</strong> <span id="dimensions">Loading...</span></div>
+        <div class="info-row"><strong>Tiles:</strong> <span id="tiles">Loading...</span></div>
+        <div class="info-row"><strong>Zoom:</strong> <span id="zoom">1.0x</span></div>
+        <div class="info-row"><strong>Level:</strong> <span id="currentLevel">-</span></div>
+    </div>
+
+    <script>
+        let viewer;
+        let metadata;
+        let tileManifest = {};
+
+        async function loadMetadata() {
+            try {
+                const response = await fetch('/info');
+                metadata = await response.json();
+                
+                document.getElementById('dimensions').textContent = 
+                    `${metadata.full_width} × ${metadata.full_height} px`;
+                
+                const pyramidStructure = metadata.pyramid_structure || {};
+                const numTiles = Object.values(pyramidStructure).reduce((sum, level) => {
+                    return sum + (level.num_tiles || 0);
+                }, 0);
+                
+                document.getElementById('tiles').textContent = 
+                    `${metadata.num_levels} levels, ${numTiles} total tiles (${metadata.tile_size}px each)`;
+                
+                console.log('Metadata loaded:', metadata);
+                return metadata;
+            } catch (error) {
+                console.error('Failed to load metadata:', error);
+                document.getElementById('status').textContent = 'Error loading metadata';
+                document.getElementById('status').style.color = '#f44336';
+                return null;
+            }
+        }
+
+        async function loadTileManifest() {
+            try {
+                const response = await fetch('/tile_manifest');
+                tileManifest = await response.json();
+                console.log('Tile manifest loaded:', tileManifest);
+                return tileManifest;
+            } catch (error) {
+                console.error('Failed to load tile manifest:', error);
+                return {};
+            }
+        }
+
+        function tileExists(level, x, y) {
+            const levelKey = String(level);
+            if (!tileManifest[levelKey]) {
+                return false;
+            }
+            
+            const bounds = tileManifest[levelKey].bounds;
+            
+            // Apply offset
+            const actualX = x + bounds.min_col;
+            const actualY = y + bounds.min_row;
+            
+            // Check if tile exists in manifest
+            const tiles = tileManifest[levelKey].tiles;
+            return tiles.some(([tx, ty]) => tx === actualX && ty === actualY);
+        }
+
+        async function initViewer() {
+            document.getElementById('status').textContent = 'Loading metadata...';
+            
+            const meta = await loadMetadata();
+            if (!meta) {
+                return;
+            }
+
+            await loadTileManifest();
+            
+            document.getElementById('status').textContent = 'Initializing viewer...';
+            
+            if (viewer) {
+                viewer.destroy();
+            }
+            
+            try {
+                // Custom tile source that only requests existing tiles
+                const customTileSource = {
+                    height: meta.full_height,
+                    width: meta.full_width,
+                    tileSize: meta.tile_size,
+                    tileOverlap: 0,
+                    minLevel: 0,
+                    maxLevel: meta.num_levels - 1,
+                    
+                    getTileUrl: function(level, x, y) {
+                        // Check if tile exists before requesting
+                        if (!tileExists(level, x, y)) {
+                            return null; // Don't request non-existent tiles
+                        }
+                        return `/dzi_files/${level}/${x}_${y}.jpg`;
+                    },
+                    
+                    // Override to prevent requesting invalid tiles
+                    tileExists: function(level, x, y) {
+                        return tileExists(level, x, y);
+                    }
+                };
+                
+                viewer = OpenSeadragon({
+                    id: "viewer",
+                    prefixUrl: "https://cdn.jsdelivr.net/npm/openseadragon@4.1/build/openseadragon/images/",
+                    
+                    tileSources: customTileSource,
+                    
+                    // Viewer settings
+                    showNavigator: true,
+                    navigatorPosition: "BOTTOM_RIGHT",
+                    
+                    // FIXED: Don't constrain - let full image show
+                    animationTime: 0.5,
+                    blendTime: 0.1,
+                    constrainDuringPan: false,  // Changed to false
+                    maxZoomPixelRatio: 2,
+                    minZoomLevel: 0.5,  // Allow zooming out more
+                    visibilityRatio: 0.5,  // Allow panning outside bounds
+                    zoomPerScroll: 1.3,
+                    
+                    // Performance
+                    immediateRender: false,
+                    wrapHorizontal: false,
+                    wrapVertical: false,
+                    
+                    // Debug
+                    debugMode: false,
+                    
+                    // Preload settings
+                    preload: true,
+                    timeout: 60000,
+                    
+                    // Reduce unnecessary tile requests
+                    imageLoaderLimit: 4,
+                    maxImageCacheCount: 200
+                });
+
+                // Event handlers
+                viewer.addHandler('open', function() {
+                    console.log('Viewer opened successfully');
+                    document.getElementById('status').textContent = 'Ready';
+                    document.getElementById('status').style.color = '#4CAF50';
+                });
+
+                viewer.addHandler('open-failed', function(event) {
+                    console.error('Viewer open failed:', event);
+                    document.getElementById('status').textContent = 'Failed to open';
+                    document.getElementById('status').style.color = '#f44336';
+                });
+
+                viewer.addHandler('tile-loaded', function(event) {
+                    console.log('✓ Tile loaded:', event.tile.url);
+                });
+
+                viewer.addHandler('tile-load-failed', function(event) {
+                    console.warn('✗ Tile load failed:', event.tile.url);
+                });
+
+                // Fixed zoom handler - safely access lastDrawn
+                viewer.addHandler('zoom', function(event) {
+                    const zoom = event.zoom;
+                    document.getElementById('zoom').textContent = zoom.toFixed(2) + 'x';
+                    
+                    // Safely get current level
+                    try {
+                        const tiledImage = viewer.world.getItemAt(0);
+                        if (tiledImage && tiledImage.lastDrawn && tiledImage.lastDrawn.length > 0) {
+                            const level = tiledImage.lastDrawn[0].level;
+                            document.getElementById('currentLevel').textContent = level;
+                        } else {
+                            document.getElementById('currentLevel').textContent = '-';
+                        }
+                    } catch (e) {
+                        // Ignore errors during initialization
+                        document.getElementById('currentLevel').textContent = '-';
+                    }
+                });
+
+                // Also update level on tile-drawn event (more reliable)
+                viewer.addHandler('tile-drawn', function(event) {
+                try {
+                    if (event.tile && event.tile.level !== undefined) {
+                        // Show OSD level (what user sees: 0=low res, higher=high res)
+                        const osdLevel = event.tile.level;
+                        // Our actual level (0=high res, 6=low res)
+                        const numLevels = metadata.num_levels;
+                        const ourLevel = metadata.actual_levels[numLevels - 1 - osdLevel];
+                        document.getElementById('currentLevel').textContent = 
+                            `${osdLevel} (series ${ourLevel})`;
+                    }
+                } catch (e) {
+                    // Ignore
+                }
+            });
+
+            } catch (error) {
+                console.error('Error initializing viewer:', error);
+                document.getElementById('status').textContent = 'Error: ' + error.message;
+                document.getElementById('status').style.color = '#f44336';
+            }
+        }
+
+        function resetView() {
+            if (viewer) {
+                viewer.viewport.goHome();
+            }
+        }
+
+        function zoomIn() {
+            if (viewer) {
+                viewer.viewport.zoomBy(1.5);
+                viewer.viewport.applyConstraints();
+            }
+        }
+
+        function zoomOut() {
+            if (viewer) {
+                viewer.viewport.zoomBy(0.666);
+                viewer.viewport.applyConstraints();
+            }
+        }
+
+        // Initialize on page load
+        window.onload = function() {
+            console.log('Page loaded, initializing viewer...');
+            initViewer();
+        };
+    </script>
+</body>
+</html>
