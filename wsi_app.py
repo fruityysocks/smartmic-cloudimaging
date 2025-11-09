@@ -248,11 +248,14 @@ def get_dzi_tile(level, col, row):
     """Serve tile in Deep Zoom format."""
     available_levels = wsi_metadata["sorted_levels"]
     num_available = len(available_levels)
-    
+
     if level >= num_available:
         our_level = available_levels[0]
     else:
         our_level = available_levels[-(level + 1)]
+
+    # Log tile request mapping
+    logger.info(f"📌 OSD Level {level} → Series {our_level} | Tile ({col}, {row})")
     
     # Apply offset based on level bounds
     if our_level in wsi_metadata["level_bounds"]:
