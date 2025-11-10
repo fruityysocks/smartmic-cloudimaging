@@ -20,7 +20,7 @@ def main():
     
     # ===== CONFIGURATION =====
     SOURCE_BUCKET = os.getenv('AWS_S3_SOURCE_BUCKET', 'source-healthimaging-test')
-    SOURCE_PREFIX = os.getenv('AWS_S3_SOURCE_PREFIX', 'dicom-case13')
+    SOURCE_PREFIX = os.getenv('AWS_S3_SOURCE_PREFIX', 'dicom_case13_forreal')
     OUTPUT_BUCKET = os.getenv('AWS_S3_OUTPUT_BUCKET', 'output-healthimaging-test')
     OUTPUT_PREFIX = os.getenv('AWS_S3_OUTPUT_PREFIX', '')
     HEALTHIMAGING_ROLE_ARN = os.getenv('AWS_HEALTHIMAGING_ROLE_ARN', 'arn:aws:iam::207799300633:role/HealthImagingServiceRole')
@@ -109,7 +109,7 @@ def main():
                 print(f"    Status: {job['jobStatus']}")
                 print(f"    Started: {job.get('submittedAt', 'Unknown')}")
             
-            print("\n❌ Cannot start new import job - AWS HealthImaging quota exceeded")
+            print("\nCannot start new import job - AWS HealthImaging quota exceeded")
             print("\nOptions:")
             print("  1. Wait for current jobs to complete (check every few minutes)")
             print("  2. Check job status with: aws medical-imaging list-dicom-import-jobs")
@@ -162,7 +162,7 @@ def main():
                     print(f"Check import logs at: {output_s3_uri}")
         
         except Exception as e:
-            print(f"\n⚠️  Import error: {e}")
+            print(f"\n Import error: {e}")
             print("Continuing with existing data in datastore...")
     
     # ===== STEP 3: SEARCH FOR IMAGE SETS =====
@@ -295,7 +295,7 @@ def main():
         print(f"  Datastore ID: {datastore_id}")
         print(f"  Region: {AWS_REGION}")
     else:
-        print("\n⚠️  No images available to view yet.")
+        print("\n No images available to view yet.")
         print("Complete the import workflow first.")
 
 if __name__ == "__main__":

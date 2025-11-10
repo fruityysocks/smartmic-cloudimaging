@@ -255,7 +255,7 @@ def get_dzi_tile(level, col, row):
         our_level = available_levels[-(level + 1)]
 
     # Log tile request mapping
-    logger.info(f"📌 OSD Level {level} → Series {our_level} | Tile ({col}, {row})")
+    logger.info(f"OSD Level {level} → Series {our_level} | Tile ({col}, {row})")
     
     # Apply offset based on level bounds
     if our_level in wsi_metadata["level_bounds"]:
