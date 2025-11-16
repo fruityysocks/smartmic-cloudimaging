@@ -12,10 +12,8 @@ import numpy as np
 from io import BytesIO
 
 # Import AWS HealthImaging wrapper
-import sys
-sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
-from HealthImaging import AWSHealthImaging
-from config import AWSConfig
+from .healthimaging import AWSHealthImaging
+from .config import AWSConfig
 
 try:
     from pylibjpeg import decode as jpeg_decode
@@ -438,7 +436,7 @@ OPENSEADRAGON_VIEWER_HTML = """
         select.addEventListener('change', (e) => {
             document.getElementById('frameNum').textContent = e.target.value;
             // Update viewer with new frame URL
-            const newUrl = imageData.pixelDataUrl.replace(/frame-\d+/, `frame-${e.target.value}`);
+            const newUrl = imageData.pixelDataUrl.replace(/frame-\\d+/, `frame-${e.target.value}`);
             viewer.open({ type: "image", url: newUrl });
         });
     </script>

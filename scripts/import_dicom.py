@@ -1,5 +1,9 @@
-from HealthImaging import AWSHealthImaging
-from src.pipeline.pipeline import DICOMWSIPipeline
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from src.healthimaging import AWSHealthImaging
+from src.pipeline import DICOMWSIPipeline
 import time
 import os
 import boto3
