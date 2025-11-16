@@ -1,28 +1,20 @@
-# AWS SDK for Python
+pyvips
+PyYAML
+numpy
+tifffile
+tiffile
+datetime
+openslide-python
+cython
+pylibjpeg
+pylibjpeg-libjpeg
+pylibjpeg-openjpeg
+pytest
 boto3>=1.34.0
-
-# DICOM file handling
+botocore>=1.34.0
 pydicom>=2.4.0
-
-# Web framework for viewer
-Flask>=3.0.0
-flask-cors>=4.0.0
-
-# Image processing
-Pillow>=10.0.0
-numpy>=1.24.0
-
-# HTJ2K decoder (AWS HealthImaging uses HTJ2K compression)
-# This is the AWS-recommended decoder for HealthImaging
-pylibjpeg>=2.0.0
-pylibjpeg-openjpeg>=2.0.0
-openjpeg>=2.0.0
-
-# Environment variable management
 python-dotenv>=1.0.0
-
-# HTTP utilities
-Werkzeug>=3.0.0
-
-# Optional: For better logging
-coloredlogs>=15.0.0
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+Pillow>=10.0.0
+requests>=2.31.0
